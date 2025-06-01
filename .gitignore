@@ -189,7 +189,6 @@ cython_debug/
 
 # Django stuff
 /media
-/staticfiles
 
 # VSCode or IDE settings
 .vscode/
