@@ -66,6 +66,22 @@ archivus/
 │   ├── urls.py
 │   ├── asgi.py
 │   └── wsgi.py
+├── core/ 
+│   ├── forms         # Reusable class components.
+│   ├── middleware
+│   ├── migrations
+│   ├── mixins
+│   ├── permissions
+│   ├── serializers
+│   ├── services
+│   ├── tests
+│   ├── urls
+│   ├── validators
+│   ├── views
+│   ├── _init__.py
+│   ├── admin.py
+│   └── apps.py
+├── static/ 
 ├── staticfiles/      # Collected static files
 ├── .env              # Local environment
 ├── .gitignore
