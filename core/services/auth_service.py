@@ -1,98 +1,65 @@
-from django.contrib.auth import authenticate, get_user_model
-from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
-from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+import logging
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+from core.services.custom_tokens import BlacklistableAccessToken
 
-User = get_user_model()
+logger = logging.getLogger(__name__)
 
 class AuthService:
+
     @staticmethod
-    def authenticate_user(request, identifier, password):
+    def authenticate_user(request, identifier: str, password: str):
         """
-        Authenticates a user using their email address and password.
-        Returns the User object if authentication is successful and active, None otherwise.
+        Authenticate the user by email (identifier) and password.
+        Returns User instance if success, else None.
         """
         user = authenticate(request, username=identifier, password=password)
-
-        if user is not None:
-            if user.is_active:
-                return user
-            else:
-                return None
-        return None
+        if user is None or not user.is_active:
+            return None
+        return user
 
     @staticmethod
     def generate_jwt_tokens(user):
         """
-        Generates refresh and access tokens for a given user.
-        Returns a dictionary containing 'refresh' and 'access' token strings.
+        Generate access and refresh JWT tokens for the user.
         """
         refresh = RefreshToken.for_user(user)
         return {
             'refresh': str(refresh),
-            'access': str(refresh.access_token),
+            'access': str(refresh.access_token)
         }
 
     @staticmethod
-    def verify_jwt_token(token_string):
+    def blacklist_jwt_tokens(refresh_token_str, access_token_str=None):
         """
-        Verifies an Access Token string and returns the associated user if valid.
-        Raises InvalidToken if the token is invalid or expired.
+        Blacklist the given refresh token and optionally access token (for logout).
         """
         try:
-            access_token = AccessToken(token_string)
-            user_id = access_token.payload.get('user_id')
-            if user_id:
-                try:
-                    return User.objects.get(id=user_id, is_active=True)
-                except User.DoesNotExist:
-                    raise InvalidToken("User does not exist or is inactive.")
-            else:
-                raise InvalidToken("Token has no user ID.")
+            # Blacklist refresh token
+            refresh_token = RefreshToken(refresh_token_str)
+            refresh_token.blacklist()
+            logger.info("Refresh token blacklisted successfully.")
+
+            # Blacklist access token if provided
+            if access_token_str:
+                access_token = BlacklistableAccessToken(access_token_str)
+                access_token.blacklist()
+                logger.info("Access token blacklisted successfully.")
         except TokenError as e:
-            raise InvalidToken(f"Token is invalid or expired: {e}")
+            logger.warning(f"Failed to blacklist token(s): {e}")
+            raise
 
     @staticmethod
-    def refresh_access_token(refresh_token_string):
+    def refresh_access_token(refresh_token_str):
         """
-        Refreshes an access token using a valid refresh token.
-        Returns a dictionary containing the new 'access' token and the (potentially rotated) 'refresh' token.
-        Raises InvalidToken if the refresh token is invalid or blacklisted.
+        Validate and return new access token from refresh token.
         """
         try:
-            refresh = RefreshToken(refresh_token_string)
-            new_access_token = str(refresh.access_token)
-            new_refresh_token = str(refresh)
-
+            refresh_token = RefreshToken(refresh_token_str)
             return {
-                'access': new_access_token,
-                'refresh': new_refresh_token,
+                'access': str(refresh_token.access_token),
+                'refresh': str(refresh_token)
             }
         except TokenError as e:
-            raise InvalidToken(f"Refresh token is invalid or expired: {e}")
-
-    @staticmethod
-    def blacklist_jwt_tokens(refresh_token_string):
-        """
-        Blacklists a refresh token (and implicitly its associated access token)
-        to prevent further use, typically during logout.
-        Returns True on successful blacklisting, False otherwise.
-        """
-        try:
-            refresh = RefreshToken(refresh_token_string)
-            refresh.blacklist()
-            return True
-        except TokenError as e:
-            print(f"TokenError during blacklisting: {e}")
-            return False
-        except Exception as e:
-            print(f"Unexpected error blacklisting token: {e}")
-            return False
-
-    @staticmethod
-    def get_token_for_user(user):
-        """
-        A utility to quickly get a fresh set of tokens for a user,
-        useful after registration or other user state changes.
-        """
-        return AuthService.generate_jwt_tokens(user)
+            logger.warning(f"Invalid token during refresh: {e}")
+            raise

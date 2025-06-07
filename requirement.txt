@@ -1,6 +1,8 @@
 asgiref==3.8.1
 dj-database-url==2.3.0
 Django==5.2.1
+django-cors-headers==4.7.0
+django-environ==0.12.0
 django-filter==25.1
 django-request-logging==0.7.5
 djangorestframework==3.16.0
