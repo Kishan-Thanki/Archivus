@@ -1,19 +1,36 @@
 import logging
 
+from django.db.utils import OperationalError
+
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
-from django.db.utils import OperationalError
+
 
 from core.mixins.response_mixins import APIResponseMixin
 from core.serializers.auth_serializers import RegisterSerializer, LoginSerializer
 from core.services.auth_service import AuthService
+from core.swagger_params import jwt_authorization_header
+
 
 logger = logging.getLogger(__name__)
 
 class RegisterView(APIView, APIResponseMixin):
     permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        operation_description="Register a new user.",
+        request_body=RegisterSerializer,
+        responses={
+            201: openapi.Response('Registration successful and user logged in.', RegisterSerializer),
+            400: 'Invalid input for registration.',
+            500: 'Server error during registration.',
+        },
+    )
 
     def post(self, request, format=None):
         serializer = RegisterSerializer(data=request.data)
@@ -60,6 +77,17 @@ class RegisterView(APIView, APIResponseMixin):
 class LoginView(APIView, APIResponseMixin):
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_description="Login user and get JWT tokens.",
+        request_body=LoginSerializer,
+        responses={
+            200: openapi.Response('Login successful.', LoginSerializer),
+            400: 'Invalid input provided.',
+            401: 'Invalid credentials.',
+            500: 'Server error.',
+        },
+    )
+
     def post(self, request, *args, **kwargs):
         serializer = LoginSerializer(data=request.data)
         if not serializer.is_valid():
@@ -103,17 +131,26 @@ class LoginView(APIView, APIResponseMixin):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    def get(self, request, *args, **kwargs):
-        return self.success_response(
-            data={
-                "message": "GET request to login endpoint. Use POST to login.",
-            },
-            message="GET request successful.",
-            status_code=status.HTTP_200_OK,
-        )
-
 class LogoutView(APIView, APIResponseMixin):
     permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Logout user by blacklisting tokens.",
+        manual_parameters=[jwt_authorization_header],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['refresh_token'],
+            properties={
+                'refresh_token': openapi.Schema(type=openapi.TYPE_STRING, description='Refresh token string'),
+            },
+        ),
+        responses={
+            200: 'Successfully logged out.',
+            400: 'Refresh token is required or invalid.',
+            401: 'Unauthorized.',
+            500: 'Unexpected server error during logout.',
+        },
+    )
 
     def post(self, request, *args, **kwargs):
         refresh_token = request.data.get("refresh_token")
@@ -147,6 +184,23 @@ class LogoutView(APIView, APIResponseMixin):
 
 class RefreshTokenView(APIView, APIResponseMixin):
     permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        operation_description="Refresh access token using refresh token.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['refresh_token'],
+            properties={
+                'refresh_token': openapi.Schema(type=openapi.TYPE_STRING, description='Refresh token string'),
+            },
+        ),
+        responses={
+            200: 'Access token refreshed.',
+            400: 'Refresh token is required.',
+            401: 'Invalid or expired refresh token.',
+            500: 'Unexpected server error during token refresh.',
+        },
+    )
 
     def post(self, request, *args, **kwargs):
         refresh_token = request.data.get("refresh_token")

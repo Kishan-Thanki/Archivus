@@ -43,6 +43,8 @@ INSTALLED_APPS = [
 
     # Local apps
     'core',
+
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -146,3 +148,14 @@ CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[
     "http://localhost:3000",
     "http://127.0.0.1:3000"
 ])
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': 'JWT Authorization header using the Bearer scheme. Example: "Bearer <token>"',
+        }
+    },
+}
