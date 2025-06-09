@@ -12,7 +12,7 @@ from core.views.v1.auth.auth_views import (
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="Your API Title",
+        title="Archivus ENDPOINTS",
         default_version='v1',
         description="API documentation",
     ),
