@@ -1,1 +1,1 @@
-from .login import *
+from .auth_views import *
