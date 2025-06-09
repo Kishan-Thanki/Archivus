@@ -23,14 +23,12 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
 )
-
-def home(request):
-    return HttpResponse("Archivus Home Page", status=200)
-
+def health_check(request):
+    return HttpResponse("OK", status=200)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', home , name='home'),
+    path('healthz', health_check),
 
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
