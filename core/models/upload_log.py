@@ -1,25 +1,17 @@
-from django.db import models
-from .document import Document
+from .base import TimeStampedModel, DocumentStatus
 from .user import User
+from .document import Document
 
-class UploadLog(models.Model):
-    APPROVED = 'approved'
-    REJECTED = 'rejected'
+from django.db import models
 
-    STATUS_CHOICES = [
-        (APPROVED, 'Approved'),
-        (REJECTED, 'Rejected'),
-    ]
-
+class UploadLog(TimeStampedModel):
     document = models.ForeignKey(Document, on_delete=models.CASCADE)
-    review_timestamp = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    review_time = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=DocumentStatus.choices)
     reviewer = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta(TimeStampedModel.Meta):
+        pass
 
     def __str__(self):
         return f"{self.document.title} - {self.status}"
-
-    class Meta:
-        verbose_name = "Upload Log"
-        verbose_name_plural = "Upload Logs"
-        ordering = ['-review_timestamp']

@@ -1,16 +1,14 @@
-from django.db import models
+from .base import TimeStampedModel
 from .user import User
+from django.db import models
 
-class PointsHistory(models.Model):
+class PointsHistory(TimeStampedModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     points = models.IntegerField()
-    reason = models.CharField(max_length=255)
-    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta(TimeStampedModel.Meta):
+        ordering = ['-created_at']
+        pass
 
     def __str__(self):
-        return f"{self.user.username}: {self.points} points"
-
-    class Meta:
-        verbose_name = "Points History"
-        verbose_name_plural = "Points Histories"
-        ordering = ['-timestamp']
+        return f"{self.user.email} - {self.points} pts"

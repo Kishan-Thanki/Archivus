@@ -50,6 +50,7 @@ class RegisterView(APIView, APIResponseMixin):
                     "user": {
                         "id": user.id,
                         "username": user.username or None,
+                        "role": user.role,
                         "email": user.email,
                         "points": getattr(user, "points", None),
                         "degree_level_id": user.degree_level.id if user.degree_level else None,

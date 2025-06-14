@@ -1,23 +1,19 @@
+from .base import TimeStampedModel
+
 from django.db import models
 
-class DegreeLevel(models.Model):
-    UG = 'UG'
-    PG = 'PG'
-    PHD = 'PHD'
+class DegreeLevel(TimeStampedModel):
+    class Code(models.TextChoices):
+        UG = 'UG', 'Undergraduate'
+        PG = 'PG', 'Postgraduate'
+        PHD = 'PHD', 'Doctorate'
 
-    CODE_CHOICES = [
-        (UG, 'Undergraduate'),
-        (PG, 'Postgraduate'),
-        (PHD, 'Doctorate'),
-    ]
-
-    code = models.CharField(max_length=10, choices=CODE_CHOICES, unique=True)
+    code = models.CharField(max_length=10, choices=Code.choices, unique=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
 
+    class Meta(TimeStampedModel.Meta):
+        pass
+
     def __str__(self):
         return self.name
-
-    class Meta:
-        verbose_name = "Degree Level"
-        verbose_name_plural = "Degree Levels"

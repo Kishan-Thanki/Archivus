@@ -10,6 +10,8 @@ from core.views.v1.auth.auth_views import (
     LoginView, LogoutView, RegisterView, RefreshTokenView,
 )
 
+from core.views.v1.dashboard.dashboard_views import DashboardView
+
 schema_view = get_schema_view(
     openapi.Info(
         title="Archivus ENDPOINTS",
@@ -25,6 +27,9 @@ urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/logout/', LogoutView.as_view(), name='logout'),
     path('auth/refresh/', RefreshTokenView.as_view(), name='refresh'),
+
+    # Dashboard
+    path('dashboard/', DashboardView.as_view(), name='dashboard'),
 
     # Swagger UI:
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
