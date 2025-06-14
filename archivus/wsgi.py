@@ -21,6 +21,6 @@ environ.Env.read_env(project_root_for_env / ".env")
 DJANGO_ENV = env("DJANGO_ENV", default="prod")
 print(f"🌐 WSGI - DJANGO_ENV loaded: {DJANGO_ENV}")
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'archivus.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', f'archivus.settings.{DJANGO_ENV}')
 
 application = get_wsgi_application()
