@@ -88,3 +88,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
 
     def __str__(self):
         return self.email
+
+    @property
+    def role(self):
+        return self.groups.first().name if self.groups.exists() else None
