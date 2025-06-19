@@ -1,5 +1,6 @@
 import logging
 
+from django.core.exceptions import ValidationError
 from django.db.utils import OperationalError
 
 from drf_yasg import openapi
@@ -88,7 +89,6 @@ class LoginView(APIView, APIResponseMixin):
             500: 'Server error.',
         },
     )
-
     def post(self, request, *args, **kwargs):
         serializer = LoginSerializer(data=request.data)
         if not serializer.is_valid():
@@ -97,17 +97,21 @@ class LoginView(APIView, APIResponseMixin):
                 message="Invalid input provided.",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
+
         try:
             identifier = serializer.validated_data.get('identifier')
             password = serializer.validated_data['password']
 
             user = AuthService.authenticate_user(request, identifier, password)
+
             if not user:
                 return self.error_response(
                     message="Invalid credentials.",
                     status_code=status.HTTP_401_UNAUTHORIZED,
                 )
+
             tokens = AuthService.generate_jwt_tokens(user)
+
             return self.success_response(
                 data={
                     "user": {
@@ -120,16 +124,11 @@ class LoginView(APIView, APIResponseMixin):
                 message="Login successful.",
                 status_code=status.HTTP_200_OK,
             )
-        except OperationalError:
+
+        except ValidationError as ve:
             return self.error_response(
-                message="Server error. Please try again later.",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-        except Exception as e:
-            logger.exception(f"Unexpected error during login: {e}")
-            return self.error_response(
-                message="Unexpected server error.",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                message=str(ve),
+                status_code=status.HTTP_401_UNAUTHORIZED
             )
 
 class LogoutView(APIView, APIResponseMixin):

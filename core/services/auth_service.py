@@ -2,6 +2,7 @@ import logging
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from core.services.custom_tokens import BlacklistableAccessToken
+from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -11,11 +12,19 @@ class AuthService:
     def authenticate_user(request, identifier: str, password: str):
         """
         Authenticate the user by email (identifier) and password.
-        Returns User instance if success, else None.
+        Returns User instance if successful, raises ValidationError otherwise.
         """
         user = authenticate(request, username=identifier, password=password)
-        if user is None or not user.is_active:
+
+        if user is None:
             return None
+
+        if not user.is_active:
+            raise ValidationError("Account is inactive. Please contact support.")
+
+        if getattr(user, "is_banned", False):  # safe fallback if some users don’t have this field
+            raise ValidationError("Your account has been banned. Contact administrator.")
+
         return user
 
     @staticmethod
