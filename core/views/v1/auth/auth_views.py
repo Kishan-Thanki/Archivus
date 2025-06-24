@@ -1,7 +1,7 @@
 import logging
 
-from django.core.exceptions import ValidationError
 from django.db.utils import OperationalError
+from django.core.exceptions import ValidationError
 
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -11,12 +11,10 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 
-
+from core.swagger_params import jwt_authorization_header
+from core.services.auth_service import AuthService
 from core.mixins.response_mixins import APIResponseMixin
 from core.serializers.auth_serializers import RegisterSerializer, LoginSerializer
-from core.services.auth_service import AuthService
-from core.swagger_params import jwt_authorization_header
-
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +30,6 @@ class RegisterView(APIView, APIResponseMixin):
             500: 'Server error during registration.',
         },
     )
-
     def post(self, request, format=None):
         serializer = RegisterSerializer(data=request.data)
         if not serializer.is_valid():
@@ -46,7 +43,8 @@ class RegisterView(APIView, APIResponseMixin):
             user = serializer.save()
             tokens = AuthService.generate_jwt_tokens(user)
             logger.info(f"User registered successfully: {user.email} (ID: {user.id})")
-            return self.success_response(
+
+            response = self.success_response(
                 data={
                     "user": {
                         "id": user.id,
@@ -63,6 +61,8 @@ class RegisterView(APIView, APIResponseMixin):
                 message="Registration successful and user logged in.",
                 status_code=status.HTTP_201_CREATED,
             )
+            return response
+
         except OperationalError:
             logger.exception("Database error during registration.")
             return self.error_response(
@@ -75,6 +75,7 @@ class RegisterView(APIView, APIResponseMixin):
                 message="Unexpected server error during registration.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
 
 class LoginView(APIView, APIResponseMixin):
     permission_classes = [AllowAny]
@@ -103,7 +104,6 @@ class LoginView(APIView, APIResponseMixin):
             password = serializer.validated_data['password']
 
             user = AuthService.authenticate_user(request, identifier, password)
-
             if not user:
                 return self.error_response(
                     message="Invalid credentials.",
@@ -111,25 +111,31 @@ class LoginView(APIView, APIResponseMixin):
                 )
 
             tokens = AuthService.generate_jwt_tokens(user)
-
-            return self.success_response(
+            response = self.success_response(
                 data={
                     "user": {
                         "id": user.id,
                         "username": user.username or None,
+                        "role": user.role,
                         "email": user.email,
+                        "points": getattr(user, "points", None),
+                        "degree_level_id": user.degree_level.id if user.degree_level else None,
+                        "program_id": user.program.id if user.program else None,
+                        "enrollment_year": user.enrollment_year,
                     },
                     "tokens": tokens,
                 },
                 message="Login successful.",
                 status_code=status.HTTP_200_OK,
             )
+            return response
 
         except ValidationError as ve:
             return self.error_response(
                 message=str(ve),
                 status_code=status.HTTP_401_UNAUTHORIZED
             )
+
 
 class LogoutView(APIView, APIResponseMixin):
     permission_classes = [IsAuthenticated]
@@ -151,13 +157,11 @@ class LogoutView(APIView, APIResponseMixin):
             500: 'Unexpected server error during logout.',
         },
     )
-
     def post(self, request, *args, **kwargs):
-        refresh_token = request.data.get("refresh_token")
-        access_token = request.headers.get("Authorization", "").split("Bearer ")[-1] if "Authorization" in request.headers else None
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+        access_token = request.headers.get('Authorization', '').split('Bearer ')[-1] if 'Authorization' in request.headers else request.COOKIES.get('access_token')
 
         if not refresh_token:
-            logger.warning("Logout failed: no refresh token provided.")
             return self.error_response(
                 message="Refresh token is required for logout.",
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -170,17 +174,17 @@ class LogoutView(APIView, APIResponseMixin):
                 status_code=status.HTTP_200_OK,
             )
         except TokenError as e:
-            logger.warning(f"Logout failed: invalid or expired refresh token. {e}")
             return self.error_response(
                 message="Invalid or expired refresh token.",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
         except Exception as e:
-            logger.exception(f"Unexpected error during logout for user {request.user.id}. {e}")
+            logger.exception(f"Unexpected error during logout: {e}")
             return self.error_response(
                 message="Unexpected server error during logout.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
 
 class RefreshTokenView(APIView, APIResponseMixin):
     permission_classes = [AllowAny]
@@ -201,18 +205,22 @@ class RefreshTokenView(APIView, APIResponseMixin):
             500: 'Unexpected server error during token refresh.',
         },
     )
-
     def post(self, request, *args, **kwargs):
-        refresh_token = request.data.get("refresh_token")
+        refresh_token = request.data.get('refresh_token')
+
         if not refresh_token:
             return self.error_response(
-                message="Refresh token is required.",
+                message="Refresh token is required in request body.",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
+
         try:
             new_tokens = AuthService.refresh_access_token(refresh_token)
             return self.success_response(
-                data=new_tokens,
+                data={
+                    'access': new_tokens['access'],
+                    'refresh': new_tokens['refresh'],
+                },
                 message="Access token refreshed.",
                 status_code=status.HTTP_200_OK,
             )
@@ -220,6 +228,7 @@ class RefreshTokenView(APIView, APIResponseMixin):
             return self.error_response(
                 message=str(e),
                 status_code=status.HTTP_401_UNAUTHORIZED,
+                errors={'code': 'invalid_refresh_token'}
             )
         except Exception as e:
             logger.exception(f"Unexpected error during token refresh: {e}")

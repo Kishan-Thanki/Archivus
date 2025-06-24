@@ -26,6 +26,9 @@ class Document(TimeStampedModel):
                                        null=True, blank=True,
                                        help_text="e.g., 1, 2, 3 (Optional)")
 
+    file_format = models.CharField(max_length=100, blank=True, null=True,
+                                   help_text="MIME type of the uploaded file (e.g., application/pdf)")
+
     status = models.CharField(max_length=20, choices=DocumentStatus.choices, default=DocumentStatus.PENDING)
 
     def __str__(self):

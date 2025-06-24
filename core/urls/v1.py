@@ -10,7 +10,8 @@ from core.views.v1.auth.auth_views import (
     LoginView, LogoutView, RegisterView, RefreshTokenView,
 )
 from core.views.v1.dashboard.dashboard_views import DashboardView
-from core.views.v1.lookups.lookups_views import DegreeLevelListView, ProgramListView
+from core.views.v1.documents.document_views import DocumentUploadView, DocumentListView, DocumentDetailView, DocumentStatusChangeView
+from core.views.v1.lookups.lookups_views import DegreeLevelListView, ProgramListView, CourseListView, AcademicYearListView, DocumentTypeChoicesView, SemesterNumberChoicesView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -35,6 +36,16 @@ urlpatterns = [
     # Lookups
     path('lookups/degree-levels/', DegreeLevelListView.as_view(), name='degree-level-list'),
     path('lookups/programs/', ProgramListView.as_view(), name='program-list'),
+    path('lookups/courses/', CourseListView.as_view(), name='lookup-courses'),
+    path('lookups/academic-years/', AcademicYearListView.as_view(), name='lookup-academic-years'),
+    path('lookups/document-types/', DocumentTypeChoicesView.as_view(), name='lookup-document-types'),
+    path('lookups/semester-numbers/', SemesterNumberChoicesView.as_view(), name='lookup-semester-numbers'),
+
+    # Documents
+    path('documents/upload/', DocumentUploadView.as_view(), name='document-upload'),
+    path('documents/', DocumentListView.as_view(), name='document-list'),
+    path('documents/<int:id>/', DocumentDetailView.as_view(), name='document-detail'),
+    path('documents/<int:id>/status/', DocumentStatusChangeView.as_view(), name='document-status-change'),
 
     # Swagger UI:
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),

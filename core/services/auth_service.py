@@ -11,26 +11,22 @@ class AuthService:
     @staticmethod
     def authenticate_user(request, identifier: str, password: str):
         """
-        Authenticate the user by email (identifier) and password.
-        Returns User instance if successful, raises ValidationError otherwise.
+        Authenticate the user by identifier (email/username) and password.
+        Returns the User instance if successful, or None / ValidationError.
         """
         user = authenticate(request, username=identifier, password=password)
-
         if user is None:
             return None
-
         if not user.is_active:
             raise ValidationError("Account is inactive. Please contact support.")
-
-        if getattr(user, "is_banned", False):  # safe fallback if some users don’t have this field
+        if getattr(user, "is_banned", False):
             raise ValidationError("Your account has been banned. Contact administrator.")
-
         return user
 
     @staticmethod
     def generate_jwt_tokens(user):
         """
-        Generate access and refresh JWT tokens for the user.
+        Generate access and refresh JWT tokens for the given user.
         """
         refresh = RefreshToken.for_user(user)
         return {
@@ -39,16 +35,15 @@ class AuthService:
         }
 
     @staticmethod
-    def blacklist_jwt_tokens(refresh_token_str, access_token_str=None):
+    def blacklist_jwt_tokens(refresh_token_str: str, access_token_str: str = None):
         """
-        Blacklist the given refresh token and optionally access token (for logout).
+        Blacklist the provided refresh token and optionally the access token.
         """
         try:
             # Blacklist refresh token
             refresh_token = RefreshToken(refresh_token_str)
             refresh_token.blacklist()
             logger.info("Refresh token blacklisted successfully.")
-
             # Blacklist access token if provided
             if access_token_str:
                 access_token = BlacklistableAccessToken(access_token_str)
@@ -59,9 +54,9 @@ class AuthService:
             raise
 
     @staticmethod
-    def refresh_access_token(refresh_token_str):
+    def refresh_access_token(refresh_token_str: str):
         """
-        Validate and return new access token from refresh token.
+        Validate the refresh token and generate new access (and rotated refresh) tokens.
         """
         try:
             refresh_token = RefreshToken(refresh_token_str)

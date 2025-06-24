@@ -37,7 +37,7 @@ class DashboardView(APIView, APIResponseMixin):
             200: dashboard_response_schema,
             401: 'Unauthorized',
             403: 'Forbidden - Role not supported',
-            500: 'Internal Server Error', # Added 500 to swagger docs
+            500: 'Internal Server Error',
         },
         security=[{"Bearer": []}],
     )

@@ -27,4 +27,6 @@ urlpatterns = [
 
 
     path('api/v1/', include('core.urls.v1')),
+
+    path('api/v1/content/', include('content.urls')),
 ]
