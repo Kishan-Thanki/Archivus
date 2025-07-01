@@ -11,7 +11,7 @@ from core.views.v1.auth.auth_views import (
 )
 from core.views.v1.dashboard.dashboard_views import DashboardView
 from core.views.v1.documents.document_views import DocumentUploadView, DocumentListView, DocumentDetailView, DocumentStatusChangeView
-from core.views.v1.lookups.lookups_views import DegreeLevelListView, ProgramListView, CourseListView, AcademicYearListView, DocumentTypeChoicesView, SemesterNumberChoicesView
+from core.views.v1.lookups.lookups_views import DegreeLevelListView, ProgramListView, CourseListView, AcademicYearListView, DocumentTypeChoicesView, SemesterNumberChoicesView,  SemesterListView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -39,6 +39,7 @@ urlpatterns = [
     path('lookups/courses/', CourseListView.as_view(), name='lookup-courses'),
     path('lookups/academic-years/', AcademicYearListView.as_view(), name='lookup-academic-years'),
     path('lookups/document-types/', DocumentTypeChoicesView.as_view(), name='lookup-document-types'),
+    path('lookups/semesters/', SemesterListView.as_view(), name='lookup-semesters'),
     path('lookups/semester-numbers/', SemesterNumberChoicesView.as_view(), name='lookup-semester-numbers'),
 
     # Documents
